@@ -35,12 +35,20 @@ for n in score.flat.notes:
         tup2note[descriptor] = n
 
 vec2points = make_vec_table( notes, [1., 1., 0] )
-mtps = extract_patterns( vec2points )
-mtps = [sorted(list(set((n[0], n[1], n[2].pitch) for n in pattern)), key=lambda x : x[1]) for pattern in mtps if len(pattern) > 2]
+pv_dict = extract_patterns( vec2points )
+mtps = [sorted(list(set((n[0], n[1], n[2].pitch) for n in pattern)), key=lambda x : x[1]) for pattern in pv_dict if len(pattern) > 2]
+compact_score = [(max([y[1] for y in x]) - min([y[1] for y in x])) / len(x) for x in mtps]
+occur_score = [len(p) * len(v) for p, v in pv_dict.items()]
+
 sorted_by_compact = sorted( mtps, key=lambda x : (max([y[1] for y in x]) - min([y[1] for y in x])) / len(x) )
 
-for pattern in sorted_by_compact[:200]:
-    print '*' * 80 + '\nPattern:'
+idxs = sorted([i for i in range(len(mtps))], key=lambda x :  occur_score[x])
+sbs = [(idx, mtps[idx]) for idx in idxs if mtps[idx][0][1] < 2.]
+
+
+
+for idx, pattern in sbs[:50]:
+    print '*' * 80 + '\nPattern, score {}*{}:'.format(compact_score[idx], occur_score[idx])
     pattern = sorted([(pitch, dur, name) for (pitch, dur, name) in pattern], key=lambda x : x[1])
     for n in pattern:
         print n
