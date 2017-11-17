@@ -29,11 +29,13 @@ class NoteMatrix:
                 for pitch in point.pitches:
                     self.mat[self.rel_pitch( pitch.midi ),
                              self.ql2ts( point.offset )] = \
-                        self.ql2ts( point.duration.quarterLength )
+                        1.
+                        # self.ql2ts( point.duration.quarterLength )
             else:
                 self.mat[self.rel_pitch( point.pitch.midi ),
                          self.ql2ts( point.offset )] = \
-                    point.duration.quarterLength
+                    1.
+                    # point.duration.quarterLength
 
     def ql2ts( self, ql ):
         return int( ceil( ql / self.timestep ) )

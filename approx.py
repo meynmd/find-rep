@@ -11,11 +11,16 @@ from torch.autograd import Variable
 import music21
 from note_mat import *
 
-def plot_mat(tensor):
+def plot_mat(tensor, notematrix):
     plt.figure()
     # imshow needs a numpy array with the channel dimension
     # as the the last dimension so we have to transpose things.
-    plt.imshow(np.flip(tensor.numpy(), 0), aspect='auto')
+    mat = tensor.numpy()
+    fig, ax = plt.subplots()
+
+    plt.imshow(np.flip(mat, 0), aspect='auto', extent=(0, mat.shape[1]*notematrix.timestep, notematrix.pitch_min, notematrix.pitch_max))
+    ax.set_xticks(range(0, int(mat.shape[1]*notematrix.timestep), 4))
+
     plt.show()
 
 def convolve_single_channel(matrix, kernel, pad):
@@ -30,11 +35,14 @@ def make_kernel(pattern, amp, pad, sig):
 def main(filename):
     score = music21.converter.parse(filename)
     notematrix = NoteMatrix(score)
-    pattern_stream = [p for p in score.recurse().getElementsByClass('Part')][1].measures(0,1)
-    kernel = make_kernel(NoteMatrix(pattern_stream, notematrix.timestep).mat, 1., 5, 1.25)
+    pattern_stream = [p for p in score.recurse().getElementsByClass('Part')][1].getElementsByOffset(0, 6) #measures(0, 1)
+    kernel = make_kernel(NoteMatrix(pattern_stream, notematrix.timestep).mat, 1., 5, 1.75)
+    pattern_mat = NoteMatrix( pattern_stream, notematrix.timestep ).mat
+    # kernel = np.random.rand(pattern_mat.shape[0], pattern_mat.shape[1])
     pad = (int(floor(kernel.shape[0] / 2)), int(floor(kernel.shape[1] / 2)))
     out = convolve_single_channel(torch.from_numpy(notematrix.mat), torch.from_numpy(kernel), pad)
-    plot_mat(out)
+    # out = fn.max_pool2d(out, (1, int(1. / notematrix.timestep)))
+    plot_mat(out, notematrix)
 
 if __name__ == '__main__':
     main(sys.argv[1])
