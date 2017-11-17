@@ -1,6 +1,7 @@
 from __future__ import division
 from collections import defaultdict
 from copy import deepcopy
+import sys
 import music21
 
 
@@ -24,10 +25,33 @@ def extract_patterns( vec_table ):
     return pattern_vec
 
 
-score = music21.converter.parse( 'bf1i.krn' )
+# def coverage(score, pattern_vec, vec_point):
+#     for pat, vec in pattern_vec:
+
+def find_compactness(pattern, score):
+    first, last = min(desc[1] for desc in pattern), max(desc[1] for desc in pattern)
+    # timespan_notes = score.flat.getElementsByOffset(first, last).getElementsByClass('Note')
+    low, high = min(desc[0] for desc in pattern), max(desc[0] for desc in pattern)
+    timespan_notes = [n for n in score.flat.notes if n.offset >= first and n.offset <= last]
+    # region_notes = [n for n in timespan_notes
+    #                 if low <= n.pitch.diatonicNoteNum <= high]
+    region_notes = []
+    for n in timespan_notes:
+        include = True
+        for p in n.pitches:
+            if p.diatonicNoteNum < low or p.diatonicNoteNum > high:
+                include = False
+        if include:
+            region_notes.append(n)
+
+
+    return float(len(pattern)) / len(region_notes)
+
+
+score = music21.converter.parse( 'beethoven_fifth_op67.mid' )
 notes = []
 tup2note = {}
-score = score.measures(0,4)
+# score = score.measures(0,5)
 for n in score.flat.notes:
     if isinstance( n, music21.note.Note ):
         # descriptor = (ord( n.pitch.step ) - ord( 'A' ), n.offset, n)
@@ -41,42 +65,40 @@ pv_dict = [(p, v) for p, v in pv_dict.items() if len(p) > 1]
 pv_dict = [(p, v) for p, v in pv_dict if max(n[1] for n in p) != min(n[1] for n in p)]
 
 # mtps = [sorted(list(set(((n[0], n[1], n[2].pitch), tuple(v)) for n in pattern)), key=lambda x : x[1]) for pattern, v in pv_dict]
-compact_score = [len(x) / (max([y[1] for y in x]) - min([y[1] for y in x])) for x, v in pv_dict]
-occur_score = [len(p) * len(v) for p, v in pv_dict]
+# compact_score = [len(x) / (max([y[1] for y in x]) - min([y[1] for y in x])) for x, v in pv_dict]
+compact_score = []
+# for i, (p, v) in enumerate(pv_dict):
+#     if i % 50 == 0:
+#         print >> sys.stderr, '{0:2%}'.format(i / len(pv_dict)),
+#     if i % 1000 == 0:
+#         print >> sys.stderr
+#     compact_score.append(find_compactness(p, score))
+compact_score = [find_compactness(p, score) for p, v in pv_dict]
+occur_score = [len(p) * len(v) / float(len(score.flat.notes)) for p, v in pv_dict]
 
 # sorted_by_compact = sorted( mtps, key=lambda x : (max([y[1] for y in x]) - min([y[1] for y in x])) / len(x) )
 
-idxs = sorted([i for i in range(len(pv_dict))], key=lambda x : compact_score[x] * occur_score[x], reverse=True)
+idxs = sorted([i for i in range(len(pv_dict))], key=lambda x : compact_score[x] + occur_score, reverse=True)
 sbs = [(idx, pv_dict[idx]) for idx in idxs]
 
 
-
-for idx, pattern in sbs[16:21]:
-    print '*' * 80 + '\nPattern, score {}*{}:'.format(compact_score[idx], occur_score[idx])
+for idx, pattern in sbs[:300]:
+    print '*' * 80 + '\nPattern, score {} * {}:'.format(compact_score[idx], occur_score[idx])
     notes = sorted([(pitch, dur, name) for (pitch, dur, name) in pattern[0]], key=lambda x : x[1])
-    for n in notes:
-        print n
+    print sorted(pattern[0], key=lambda x : x[1])
     print pattern[1]
     print '\n' + '*' * 80
 
-
-    for n in score.flat.notes:
-        n.style.color = None
-    pattern_notes = [n for p, d, n in pattern[0]]
-    for n in score.flat.notes:
-        if n in pattern_notes:
-            n.style.color = 'blue'
-        else:
-            n.style.color = 'red'
-
-    t = ''
-    for n in sorted(pattern[0], key=lambda x : x[1]):
-        t += '{}, {}'.format(n[2].pitch, n[1])
-
-    score.metadata = music21.metadata.Metadata(movementName=t)
-    score.show()
-
-
-
-
-
+    # for n in score.flat.notes:
+    #     n.style.color = None
+    # pattern_notes = {n : (p, d) for p, d, n in pattern[0]}
+    # for note in score.flat.notes:
+    #     if note in pattern_notes and note.pitch.diatonicNoteNum == pattern_notes[note][0] and note.offset == pattern_notes[note][1]:
+    #         note.style.color = 'blue'
+    #
+    # t = ''
+    # for n in sorted(pattern[0], key=lambda x : x[1]):
+    #     t += '{}, {}\n'.format(n[2].pitch, n[1])
+    #
+    # score.metadata = music21.metadata.Metadata(movementName=t, composer=pattern[1])
+    # score.show()
