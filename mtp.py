@@ -48,7 +48,7 @@ def find_compactness(pattern, score):
     return float(len(pattern)) / len(region_notes)
 
 
-score = music21.converter.parse( 'beethoven_fifth_op67.mid' )
+score = music21.converter.parse( 'bf1i.krn' )
 notes = []
 tup2note = {}
 # score = score.measures(0,5)
@@ -78,11 +78,11 @@ occur_score = [len(p) * len(v) / float(len(score.flat.notes)) for p, v in pv_dic
 
 # sorted_by_compact = sorted( mtps, key=lambda x : (max([y[1] for y in x]) - min([y[1] for y in x])) / len(x) )
 
-idxs = sorted([i for i in range(len(pv_dict))], key=lambda x : compact_score[x] + occur_score, reverse=True)
+idxs = sorted([i for i in range(len(pv_dict))], key=lambda x : compact_score[x] + occur_score[x], reverse=True)
 sbs = [(idx, pv_dict[idx]) for idx in idxs]
 
 
-for idx, pattern in sbs[:300]:
+for idx, pattern in sbs[:1000]:
     print '*' * 80 + '\nPattern, score {} * {}:'.format(compact_score[idx], occur_score[idx])
     notes = sorted([(pitch, dur, name) for (pitch, dur, name) in pattern[0]], key=lambda x : x[1])
     print sorted(pattern[0], key=lambda x : x[1])

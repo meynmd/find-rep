@@ -12,7 +12,7 @@ import music21
 from note_mat import *
 
 def plot_mat(tensor, notematrix):
-    plt.figure()
+    # plt.figure()
     # imshow needs a numpy array with the channel dimension
     # as the the last dimension so we have to transpose things.
     mat = tensor.numpy()
@@ -32,17 +32,24 @@ def make_kernel(pattern, amp, pad, sig):
     k = np.pad(k, pad, 'constant')
     return gaussian_filter(k, sig)
 
+def evaluate_patterns(filename, patterns):
+    pass
+
 def main(filename):
     score = music21.converter.parse(filename)
     notematrix = NoteMatrix(score)
     pattern_stream = [p for p in score.recurse().getElementsByClass('Part')][1].getElementsByOffset(0, 6) #measures(0, 1)
-    kernel = make_kernel(NoteMatrix(pattern_stream, notematrix.timestep).mat, 1., 5, 1.75)
+    kernel = make_kernel(NoteMatrix(pattern_stream, notematrix.timestep).mat, 1., 5, 1.)
     pattern_mat = NoteMatrix( pattern_stream, notematrix.timestep ).mat
     # kernel = np.random.rand(pattern_mat.shape[0], pattern_mat.shape[1])
     pad = (int(floor(kernel.shape[0] / 2)), int(floor(kernel.shape[1] / 2)))
     out = convolve_single_channel(torch.from_numpy(notematrix.mat), torch.from_numpy(kernel), pad)
-    # out = fn.max_pool2d(out, (1, int(1. / notematrix.timestep)))
     plot_mat(out, notematrix)
+    out = out.view( 1, out.size( 0 ), -1 )
+    out = fn.max_pool2d(out, (1, int(1. / notematrix.timestep)))
+    # plot_mat(out.view(out.size(1), -1), notematrix)
+
+    total = np.sum(out.numpy())
 
 if __name__ == '__main__':
     main(sys.argv[1])
