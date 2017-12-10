@@ -3,7 +3,6 @@ from math import *
 from copy import deepcopy
 import sys
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.ndimage.filters import gaussian_filter
 import torch
 import torch.nn.functional as fn
@@ -13,6 +12,8 @@ from note_mat import *
 from mtp import *
 
 def plot_mat(tensor, notematrix):
+    import matplotlib.pyplot as plt
+
     # imshow needs a numpy array with the channel dimension
     # as the the last dimension so we have to transpose things.
     mat = tensor.numpy()
@@ -46,7 +47,8 @@ def copy_pattern(score, pattern):
 def do_convolutions( mtps, notematrix, sigma=1., pad=5 ):
     print 'doing convolutions...\n'
     activation_sums, kernels = [], []
-    for pattern in mtps:
+    for i, pattern in enumerate(mtps):
+        print 'pattern {}'.format(i), '\r'
         kernel = notematrix.make_kernel( pattern, sigma, 5, 5 )
         pad = (int( floor( kernel.shape[0] / 2 ) ), int( floor( kernel.shape[1] / 2 ) ))
         out = convolve_single_channel( torch.from_numpy( notematrix.mat ), torch.from_numpy( kernel ), pad )
@@ -60,7 +62,7 @@ def do_convolutions( mtps, notematrix, sigma=1., pad=5 ):
         kernels.append( kernel )
     return activation_sums, kernels
 
-def output_results( activation_sums, kernels, mtps, compact_scores, cov_scores, notematrix ):
+def output_results( activation_sums, kernels, mtps, compact_scores, cov_scores, notematrix, plot ):
     idxs = sorted( [idx for idx in range( len( kernels ) )], key=lambda i: activation_sums[i], reverse=True )
     for j, idx in enumerate( idxs ):
         # show the score with pattern notes color coded
@@ -91,16 +93,23 @@ def output_results( activation_sums, kernels, mtps, compact_scores, cov_scores, 
             )
             pad = (int( floor( kernels[idx].shape[0] / 2 ) ), int( floor( kernels[idx].shape[1] / 2 ) ))
             out = convolve_single_channel( torch.from_numpy( notematrix.mat ), torch.from_numpy( kernels[idx] ), pad )
-            plot_mat( out, notematrix )
+            if plot:
+                plot_mat( out, notematrix )
 
-def main(filename):
+def main(args):
+    filename = args[1]
+    plot = False
+    if len(args) > 2:
+        if args[2] == '-p':
+            plot = True
+
     score = music21.converter.parse(filename)
     notematrix = NoteMatrix(score)
     print 'sorting MTPs...'
     results = notematrix.get_sorted_mtps()
     mtps, comp, cov = zip(*results)
     activation_sums, kernels = do_convolutions( mtps[:10], notematrix )
-    output_results( activation_sums, kernels, mtps, comp, cov, notematrix )
+    output_results( activation_sums, kernels, mtps, comp, cov, notematrix, plot )
 
 if __name__ == '__main__':
-    main(sys.argv[1])
+    main(sys.argv)
