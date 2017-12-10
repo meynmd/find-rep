@@ -48,11 +48,12 @@ def do_convolutions( mtps, notematrix, sigma=1., pad=5 ):
     print 'doing convolutions...\n'
     activation_sums, kernels = [], []
     for i, pattern in enumerate(mtps):
-        print 'pattern {}'.format(i), '\r'
         kernel = notematrix.make_kernel( pattern, sigma, 5, 5 )
+        print 'pattern {}, matrix {}, kernel {}'.format(i, notematrix.mat.shape, kernel.shape), '\r'
+
         pad = (int( floor( kernel.shape[0] / 2 ) ), int( floor( kernel.shape[1] / 2 ) ))
         out = convolve_single_channel( torch.from_numpy( notematrix.mat ), torch.from_numpy( kernel ), pad )
-        out = out.view( 1, out.size( 0 ), -1 )
+        out = Variable( out.view( 1, out.size( 0 ), -1 ) )
         out = fn.max_pool2d( out, (1, int( 1. / notematrix.timestep )) )
         out = out.data.view( out.data.size()[1], -1 )
         arr = out.numpy()
