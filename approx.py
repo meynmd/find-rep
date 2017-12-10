@@ -67,7 +67,7 @@ def output_results( activation_sums, kernels, mtps, compact_scores, cov_scores, 
     idxs = sorted( [idx for idx in range( len( kernels ) )], key=lambda i: activation_sums[i], reverse=True )
     for j, idx in enumerate( idxs ):
         # show the score with pattern notes color coded
-        if j < 10:
+        if j < 10 and plot:
             pattern = mtps[idx]
             score = notematrix.music_score
             notes = [notematrix.loc2point[pit, off] for pit, off in pattern]
@@ -105,7 +105,7 @@ def main(args):
             plot = True
 
     score = music21.converter.parse(filename)
-    notematrix = NoteMatrix(score)
+    notematrix = NoteMatrix(score, timestep_min=0.5)
     print 'sorting MTPs...'
     results = notematrix.get_sorted_mtps()
     mtps, comp, cov = zip(*results)

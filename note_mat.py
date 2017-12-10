@@ -50,7 +50,7 @@ class NoteMatrix:
             self.loc2point[location] = point
 
     def ql2ts( self, ql ):
-        return int( ceil( ql / self.timestep ) )
+        return int( round( ql / self.timestep ) )
 
     def ts2ql( self, ts ):
         return ts * self.timestep
