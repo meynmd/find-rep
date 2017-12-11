@@ -31,7 +31,10 @@ class NoteMatrix:
         for p, o in pattern:
             kernel[p - low, o - first] = 1.
         kernel = np.pad(kernel, ((pad_p, pad_p), (pad_d, pad_d)), 'constant')
-        return gaussian_filter( kernel, sigma )
+        if sigma is None:
+            return kernel
+        else:
+            return gaussian_filter( kernel, sigma )
 
     def populate( self, notes ):
         for point in notes:
@@ -94,19 +97,20 @@ class NoteMatrix:
         pattern_points = pattern + tuple(list(set([(p + vp, o + vo) for p, o in pattern for vp, vo in vec])))
         return float(len(pattern_points)) / len(self.loc2point)
 
+    def pattern_dur(self, pattern):
+        ordered = sorted(pattern, key=lambda x : x[1])
+        return ordered[-1][1] - ordered[0][1]
+
     def get_mtps(self):
         return self.mtp_table.keys()
 
     def get_sorted_mtps(self, min_length=3):
-        mtps = [(p, v) for p, v in self.mtp_table.items() if len(p) > min_length]
-        compact_score = [self.find_compact(p, v) for p, v in mtps]
-        coverage_score = [self.find_coverage(p, v) for p, v in mtps]
-        idxs = sorted([i for i in range(len(mtps))],
-                      key=lambda x : compact_score[x] * coverage_score[x],
-                      reverse=True)
-        return [(mtps[idx][0], compact_score[idx], coverage_score[idx]) for idx in idxs]
+        mtps = [(p, v) for p, v in self.mtp_table.items() if len(p) > min_length and self.pattern_dur(p) < 0.25 * self.mat.shape[1]]
+        return [(mtp[0], 0., 0.) for mtp in mtps]
 
-        # return sorted(
-        #     [p for p, v in self.mtp_table.items()],
-        #     key=lambda x : self.find_compact(p, v) * self.find_coverage(p, v)
-        # )
+        # compact_score = [self.find_compact(p, v) for p, v in mtps]
+        # coverage_score = [self.find_coverage(p, v) for p, v in mtps]
+        # idxs = sorted([i for i in range(len(mtps))],
+        #               key=lambda x : compact_score[x] * coverage_score[x],
+        #               reverse=True)
+        # return [(mtps[idx][0], compact_score[idx], coverage_score[idx]) for idx in idxs]
